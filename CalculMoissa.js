@@ -1,3 +1,4 @@
+// Gestion des boutons pour afficher les sections
 document.getElementById("parquetBtn").addEventListener("click", () => showSection("parquet"));
 document.getElementById("carrelageBtn").addEventListener("click", () => showSection("carrelage"));
 
@@ -12,59 +13,23 @@ function showSection(type) {
     }
 }
 
+
 document.getElementById("generateSurfaceInputs").addEventListener("click", () => {
     const numSurfaces = parseInt(document.getElementById("numSurfaces").value) || 0;
     const container = document.getElementById("surfaceInputs");
-    container.innerHTML = ""; 
+    container.innerHTML = "";
 
     for (let i = 1; i <= numSurfaces; i++) {
         const row = document.createElement("div");
-        row.className = "input-row"; 
-        const lengthSection = document.createElement("div");
-        lengthSection.className = "input-section";
-        const lengthLabel = document.createElement("label");
-        lengthLabel.textContent = `Longueur ${i} (m)`;
-        lengthLabel.setAttribute("for", `length${i}`);
-        lengthSection.appendChild(lengthLabel);
-        const lengthInput = document.createElement("input");
-        lengthInput.type = "number";
-        lengthInput.id = `length${i}`;
-        lengthInput.placeholder = "Longueur";
-        lengthSection.appendChild(lengthInput);
+        row.className = "input-row";
+
+        const lengthSection = createInputSection(`Longueur ${i} (m)`, `length${i}`, "number", "Longueur");
         row.appendChild(lengthSection);
 
-        const separator1 = document.createElement("div");
-        separator1.className = "separator";
-        row.appendChild(separator1);
-
-        const widthSection = document.createElement("div");
-        widthSection.className = "input-section";
-        const widthLabel = document.createElement("label");
-        widthLabel.textContent = `Largeur ${i} (m)`;
-        widthLabel.setAttribute("for", `width${i}`);
-        widthSection.appendChild(widthLabel);
-        const widthInput = document.createElement("input");
-        widthInput.type = "number";
-        widthInput.id = `width${i}`;
-        widthInput.placeholder = "Largeur";
-        widthSection.appendChild(widthInput);
+        const widthSection = createInputSection(`Largeur ${i} (m)`, `width${i}`, "number", "Largeur");
         row.appendChild(widthSection);
 
-        const separator2 = document.createElement("div");
-        separator2.className = "separator";
-        row.appendChild(separator2);
-
-        const areaSection = document.createElement("div");
-        areaSection.className = "input-section";
-        const areaLabel = document.createElement("label");
-        areaLabel.textContent = `Surface ${i} (m²) (optionnel)`;
-        areaLabel.setAttribute("for", `area${i}`);
-        areaSection.appendChild(areaLabel);
-        const areaInput = document.createElement("input");
-        areaInput.type = "number";
-        areaInput.id = `area${i}`;
-        areaInput.placeholder = "Surface";
-        areaSection.appendChild(areaInput);
+        const areaSection = createInputSection(`Surface ${i} (m²) (optionnel)`, `area${i}`, "number", "Surface");
         row.appendChild(areaSection);
 
         container.appendChild(row);
@@ -76,6 +41,23 @@ document.getElementById("generateSurfaceInputs").addEventListener("click", () =>
     }
 });
 
+function createInputSection(labelText, inputId, inputType, placeholderText) {
+    const section = document.createElement("div");
+    section.className = "input-section";
+
+    const label = document.createElement("label");
+    label.textContent = labelText;
+    label.setAttribute("for", inputId);
+    section.appendChild(label);
+
+    const input = document.createElement("input");
+    input.type = inputType;
+    input.id = inputId;
+    input.placeholder = placeholderText;
+    section.appendChild(input);
+
+    return section;
+}
 
 document.getElementById("calculateParquet").addEventListener("click", () => {
     const length = parseFloat(document.getElementById("parquetLength").value);
@@ -83,18 +65,34 @@ document.getElementById("calculateParquet").addEventListener("click", () => {
     const area = parseFloat(document.getElementById("parquetArea").value);
     const packageArea = parseFloat(document.getElementById("parquetPackageArea").value);
 
-    if (isNaN(length) || isNaN(width) || isNaN(packageArea)) {
-        alert("Veuillez remplir tous les champs requis.");
+    let calculatedArea;
+    let perimeter;
+
+    if (!isNaN(length) && !isNaN(width)) {
+        calculatedArea = length * width;
+        perimeter = 2 * (length + width);
+    } else if (!isNaN(area)) { 
+        calculatedArea = area;
+        const side = Math.sqrt(area); 
+        perimeter = 4 * side;
+    } else {
+        alert("Veuillez remplir soit la longueur et la largeur, soit l'aire.");
         return;
     }
 
-    const calculatedArea = length * width;
-    const numberOfPackages = Math.ceil(calculatedArea / packageArea);
+    if (isNaN(packageArea) || packageArea <= 0) {
+        alert("Veuillez entrer une surface par paquet valide.");
+        return;
+    }
 
-    document.getElementById("parquetPerimeter").textContent = `Périmètre : ${2 * (length + width).toFixed(2)} m`;
+    const numberOfPackages = Math.ceil(calculatedArea / packageArea);
+    const plinthLength = 2.4; // Longueur d'une plinthe standard
+    const numberOfPlinths = Math.ceil(perimeter / plinthLength);
+
+    document.getElementById("parquetPerimeter").textContent = `Périmètre : ${perimeter.toFixed(2)} m`;
     document.getElementById("parquetPackages").textContent = `Nombre de paquets nécessaires : ${numberOfPackages}`;
     document.getElementById("parquetUnderlayer").textContent = `Sous-couche nécessaire : ${calculatedArea.toFixed(2)} m²`;
-
+    document.getElementById("parquetPlinths").textContent = `Nombre de plinthes nécessaires : ${numberOfPlinths}`;
 });
 
 document.getElementById("calculateCarrelage").addEventListener("click", () => {
@@ -103,7 +101,7 @@ document.getElementById("calculateCarrelage").addEventListener("click", () => {
     const plinthLength = parseFloat(document.getElementById("plinthLength").value) || 0;
 
     if (isNaN(packageArea)) {
-        alert("Veuillez remplir l'air de la botte.");
+        alert("Veuillez remplir la surface par paquet.");
         return;
     }
 
@@ -128,6 +126,8 @@ document.getElementById("calculateCarrelage").addEventListener("click", () => {
     }
 
     const numberOfPackages = Math.ceil(totalArea / packageArea);
+
+    // Mise à jour de l'affichage
     document.getElementById("carrelageTotalArea").textContent = `Surface totale : ${totalArea.toFixed(2)} m²`;
     document.getElementById("carrelagePerimeters").textContent = `Périmètre total : ${totalPerimeter.toFixed(2)} m`;
     document.getElementById("carrelagePackages").textContent = `Nombre de paquets nécessaires : ${numberOfPackages}`;
@@ -139,28 +139,3 @@ document.getElementById("calculateCarrelage").addEventListener("click", () => {
         document.getElementById("carrelagePlinths").textContent = "Veuillez entrer la longueur d'une plinthe pour calculer le nombre de plinthes nécessaires.";
     }
 });
-
-
-document.getElementById("calculateParquet").addEventListener("click", () => {
-    const length = parseFloat(document.getElementById("parquetLength").value) || 0;
-    const width = parseFloat(document.getElementById("parquetWidth").value) || 0;
-    const area = parseFloat(document.getElementById("parquetArea").value) || 0;
-    const packageArea = parseFloat(document.getElementById("parquetPackageArea").value) || 0;
-
-    const perimeter = 2 * (length + width);
-    document.getElementById("parquetPerimeter").textContent = `Périmètre : ${perimeter.toFixed(2)} m`;
-
-    const plinthLength = 2.4;
-    const numPlinths = Math.ceil(perimeter / plinthLength);
-    document.getElementById("parquetPlinths").textContent = `Nombre de plinthes nécessaires : ${numPlinths}`;
-
-    if (packageArea > 0) {
-        const totalArea = length * width;
-        const numPackages = Math.ceil(totalArea / packageArea);
-        document.getElementById("parquetPackages").textContent = `Nombre de bottes nécessaires : ${numPackages}`;
-    } else {
-        document.getElementById("parquetPackages").textContent = "Veuillez entrer l'air d'une botte pour calculer le nombre de paquets.";
-    }
-});
-
-
